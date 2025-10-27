@@ -20,7 +20,7 @@ class Product extends Model
     protected $dates = ['create_date', 'delete_date'];
 
     protected $fillable = [
-        'sku', 'name_en', 'name_fr', 'price', 'descriptions', 'thumbnail', 'image', 'category', 'stock',
+        'sku', 'name_en', 'name_fr', 'description_en', 'description_fr', 'price', 'thumbnail', 'image', 'stock',
     ];
 
     protected $casts = [

@@ -13,11 +13,11 @@ return new class extends Migration
             $table->string('sku')->nullable()->unique();
             $table->string('name_en');
             $table->string('name_fr')->nullable();
+            $table->text('description_en')->nullable();
+            $table->text('description_fr')->nullable();
             $table->decimal('price', 10, 2)->default(0);
-            $table->text('descriptions')->nullable();
             $table->string('thumbnail')->nullable();
             $table->string('image')->nullable();
-            $table->string('category')->nullable();
             $table->timestamp('create_date')->useCurrent();
             $table->timestamp('delete_date')->nullable();
             $table->integer('stock')->default(0);
