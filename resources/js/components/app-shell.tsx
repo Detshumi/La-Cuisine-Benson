@@ -9,6 +9,8 @@ interface AppShellProps {
 
 export function AppShell({ children, variant = 'header' }: AppShellProps) {
     const isOpen = usePage<SharedData>().props.sidebarOpen;
+    const { url = '' } = usePage<any>() as any;
+    const isThemePage = String(url).includes('/admin/lookups') || String(url).includes('/admin/products');
 
     if (variant === 'header') {
         return (
@@ -16,5 +18,11 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    // When rendering the sidebar variant we attach a data-theme attribute to the provider wrapper
+    // so both sidebar and content can pick up the theme for smooth transitions.
+    return (
+        <div data-theme={isThemePage ? 'lookups' : undefined}>
+            <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>
+        </div>
+    );
 }

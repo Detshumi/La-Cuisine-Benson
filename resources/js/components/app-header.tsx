@@ -30,32 +30,15 @@ import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { mainNavItems as sharedMainNavItems, footerNavItems as sharedFooterNavItems } from '@/data/nav';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
+const mainNavItems = sharedMainNavItems; // imported shared
+const rightNavItems = sharedFooterNavItems; // imported shared
 
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
@@ -68,9 +51,15 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
     const getInitials = useInitials();
+    const isThemePage = String(page.url).includes('/admin/lookups') || String(page.url).includes('/admin/products');
+    const lookupsGradient = 'linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%)';
     return (
         <>
-            <div className="border-b border-sidebar-border/80">
+            <div
+                className={cn('app-header border-b border-sidebar-border/80',
+                    isThemePage && 'text-white')}
+                style={isThemePage ? { background: lookupsGradient, color: '#ffffff' } : undefined}
+            >
                 <div className="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
                     {/* Mobile Menu */}
                     <div className="lg:hidden">
@@ -103,12 +92,12 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     href={item.href}
                                                     className="flex items-center space-x-2 font-medium"
                                                 >
-                                                    {item.icon && (
-                                                        <Icon
-                                                            iconNode={item.icon}
-                                                            className="h-5 w-5"
-                                                        />
-                                                    )}
+                                                        {item.icon && (
+                                                            <Icon
+                                                                iconNode={item.icon}
+                                                                className={cn('h-5 w-5', isThemePage && 'text-white')}
+                                                            />
+                                                        )}
                                                     <span>{item.title}</span>
                                                 </Link>
                                             ))}
@@ -126,12 +115,12 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center space-x-2 font-medium"
+                                                    className={cn('flex items-center space-x-2 font-medium', isThemePage && 'text-white')}
                                                 >
                                                     {item.icon && (
                                                         <Icon
                                                             iconNode={item.icon}
-                                                            className="h-5 w-5"
+                                                            className={cn('h-5 w-5', isLookups && 'text-white')}
                                                         />
                                                     )}
                                                     <span>{item.title}</span>
@@ -163,7 +152,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     >
                                         <Link
                                             href={item.href}
-                                            className={cn(
+                                                className={cn(
                                                 navigationMenuTriggerStyle(),
                                                 page.url ===
                                                     (typeof item.href ===
@@ -171,13 +160,14 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                         ? item.href
                                                         : item.href.url) &&
                                                     activeItemStyles,
+                                                isThemePage && 'text-white',
                                                 'h-9 cursor-pointer px-3',
                                             )}
                                         >
                                             {item.icon && (
                                                 <Icon
                                                     iconNode={item.icon}
-                                                    className="mr-2 h-4 w-4"
+                                                    className={cn('mr-2 h-4 w-4', isThemePage && 'text-white')}
                                                 />
                                             )}
                                             {item.title}
@@ -263,7 +253,10 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                 </div>
             </div>
             {breadcrumbs.length > 1 && (
-                <div className="flex w-full border-b border-sidebar-border/70">
+                <div
+                    className={cn('flex w-full border-b border-sidebar-border/70', isLookups && 'text-white')}
+                    style={isLookups ? { background: lookupsGradient, color: '#ffffff' } : undefined}
+                >
                     <div className="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl">
                         <Breadcrumbs breadcrumbs={breadcrumbs} />
                     </div>
