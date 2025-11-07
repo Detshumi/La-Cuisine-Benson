@@ -1,3 +1,48 @@
+[/* High-specificity overrides to ensure the lookups theme wins over utility classes */]
+html[data-theme="lookups"] [data-sidebar="sidebar"],
+html[data-theme="lookups"] [data-slot="sidebar-inset"] {
+    background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%) !important;
+    transition: background 400ms ease-in-out !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden !important;
+}
+
+html[data-theme="lookups"] main[data-slot="sidebar-inset"],
+html[data-theme="lookups"] .bg-background {
+    background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%) !important;
+    transition: background 400ms ease-in-out !important;
+}
+
+/* Header matches the lookups theme so the top nav icons look consistent */
+html[data-theme="lookups"] .app-header,
+html[data-theme="lookups"] .app-header .mx-auto,
+html[data-theme="lookups"] .app-header .ml-auto {
+    background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%) !important;
+    color: #ffffff !important;
+}
+
+/* Breadcrumb bar */
+html[data-theme="lookups"] .flex.w-full.border-b {
+    background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%) !important;
+    color: #ffffff !important;
+}
+
+/* Force sidebar text/icons to be readable on top of the gradient */
+html[data-theme="lookups"] [data-slot="sidebar"] a,
+html[data-theme="lookups"] [data-slot="sidebar"] button,
+html[data-theme="lookups"] [data-slot="sidebar"] .group/menu-item,
+html[data-theme="lookups"] [data-slot="sidebar"] .size-4,
+html[data-theme="lookups"] [data-slot="sidebar"] svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+/* Borders and separators subtle but visible */
+html[data-theme="lookups"] [data-sidebar="sidebar"] {
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06) !important;
+}
+
 @import 'tailwindcss';
 
 @import "tw-animate-css";
@@ -141,3 +186,77 @@
         @apply bg-background text-foreground;
     }
 }
+
+    /* Make the inset sidebar use the same gradient as the lookups page while keeping text colors */
+    .custom-sidebar-gradient [data-sidebar="sidebar"] {
+        background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%);
+    }
+
+    /* Ensure sidebar children (logo, menu) use the sidebar foreground color */
+    .custom-sidebar-gradient {
+        --sidebar: transparent;
+    }
+
+    /* Theme helper: when a container has data-theme=lookups apply gradient to sidebar and content */
+    [data-theme="lookups"] [data-sidebar="sidebar"],
+    [data-theme="lookups"] [data-slot="sidebar-inset"] {
+        background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%);
+        transition: background 400ms ease-in-out;
+    }
+
+    /* Smoothly fade the main content background to the same gradient when lookups is active */
+    [data-theme="lookups"] main[data-slot="sidebar-inset"],
+    [data-theme="lookups"] .bg-background {
+        background: linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%);
+        transition: background 400ms ease-in-out;
+    }
+
+    /* Round the sidebar corners to match the main page rounded corners for inset variant */
+    [data-theme="lookups"] [data-sidebar="sidebar"] {
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    /* Ensure menu items remain visible: adjust sidebar foreground and accent tokens for this theme */
+    [data-theme="lookups"] {
+        --sidebar-foreground: oklch(0.985 0 0); /* white-ish */
+        --sidebar-primary: oklch(0 0 0); /* keep primary token transparent */
+        --sidebar-primary-foreground: oklch(0.985 0 0);
+        --sidebar-accent: rgba(255,255,255,0.08);
+        --sidebar-accent-foreground: oklch(0.985 0 0);
+        --sidebar-border: rgba(255,255,255,0.12);
+    }
+
+    /* Increase contrast for menu items */
+    [data-theme="lookups"] [data-slot="sidebar"] a,
+    [data-theme="lookups"] [data-slot="sidebar"] button,
+    [data-theme="lookups"] [data-slot="sidebar"] .group/menu-item {
+        color: var(--sidebar-foreground) !important;
+    }
+
+    /* Sidebar menu hover/active should use the same translucent white accent on the gradient */
+    [data-theme="lookups"] [data-slot="sidebar"] [data-slot="sidebar-menu-button"]:hover,
+    [data-theme="lookups"] [data-slot="sidebar"] [data-slot="sidebar-menu-button"][data-active="true"] {
+        background: rgba(255,255,255,0.08) !important;
+        color: #ffffff !important;
+    }
+
+    [data-theme="lookups"] [data-slot="sidebar"] [data-slot="sidebar-menu-button"] svg {
+        color: #ffffff !important;
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+    }
+
+    /* Small scoped helper: make header/nav icons and links white for the themed pages only */
+    [data-theme="lookups"] .app-header a,
+    [data-theme="lookups"] .app-header svg,
+    [data-theme="lookups"] nav a,
+    [data-theme="lookups"] .navigation-menu a,
+    [data-theme="lookups"] [data-slot="sidebar"] a,
+    [data-theme="lookups"] [data-slot="sidebar"] button {
+        color: #ffffff !important;
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+    }
+
+    
