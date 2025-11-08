@@ -22,6 +22,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('options', [App\Http\Controllers\Admin\OptionController::class, 'store'])->name('options.store');
         Route::get('options', [App\Http\Controllers\Admin\OptionController::class, 'index'])->name('options.index');
     Route::delete('options/{id}', [App\Http\Controllers\Admin\OptionController::class, 'destroy'])->name('options.destroy');
+        // Image upload endpoint used by admin UIs
+        Route::post('uploads/image', [App\Http\Controllers\Admin\UploadController::class, 'image'])->name('uploads.image');
+    // Remove thumbnail for an option (delete files and clear DB value)
+    Route::delete('options/{id}/thumbnail', [App\Http\Controllers\Admin\OptionController::class, 'removeThumbnail'])->name('options.thumbnail.remove');
         Route::post('categories', [App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('categories.store');
         Route::get('categories', [App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('categories.index');
     Route::delete('categories/{id}', [App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('categories.destroy');

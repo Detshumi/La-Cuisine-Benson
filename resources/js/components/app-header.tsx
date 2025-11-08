@@ -53,6 +53,11 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const getInitials = useInitials();
     const isThemePage = String(page.url).includes('/admin/lookups') || String(page.url).includes('/admin/products');
     const lookupsGradient = 'linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(20,184,166,1) 100%)';
+    const resolveHref = (href: any) => {
+        if (typeof href === 'function') return href();
+        if (typeof href === 'string') return href;
+        return href && typeof href === 'object' ? href.url ?? '' : '';
+    };
     return (
         <>
             <div
@@ -88,10 +93,10 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <div className="flex flex-col space-y-4">
                                             {mainNavItems.map((item) => (
                                                 <Link
-                                                    key={item.title}
-                                                    href={item.href}
-                                                    className="flex items-center space-x-2 font-medium"
-                                                >
+                                                        key={item.title}
+                                                        href={resolveHref(item.href)}
+                                                        className="flex items-center space-x-2 font-medium"
+                                                    >
                                                         {item.icon && (
                                                             <Icon
                                                                 iconNode={item.icon}
@@ -105,14 +110,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                                         <div className="flex flex-col space-y-4">
                                             {rightNavItems.map((item) => (
-                                                <a
-                                                    key={item.title}
-                                                    href={
-                                                        typeof item.href ===
-                                                        'string'
-                                                            ? item.href
-                                                            : item.href.url
-                                                    }
+                            <a
+                                key={item.title}
+                                href={resolveHref(item.href)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className={cn('flex items-center space-x-2 font-medium', isThemePage && 'text-white')}
@@ -120,7 +120,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     {item.icon && (
                                                         <Icon
                                                             iconNode={item.icon}
-                                                            className={cn('h-5 w-5', isLookups && 'text-white')}
+                                                            className={cn('h-5 w-5', isThemePage && 'text-white')}
                                                         />
                                                     )}
                                                     <span>{item.title}</span>
@@ -151,14 +151,10 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         className="relative flex h-full items-center"
                                     >
                                         <Link
-                                            href={item.href}
+                                            href={resolveHref(item.href)}
                                                 className={cn(
                                                 navigationMenuTriggerStyle(),
-                                                page.url ===
-                                                    (typeof item.href ===
-                                                    'string'
-                                                        ? item.href
-                                                        : item.href.url) &&
+                                                page.url === resolveHref(item.href) &&
                                                     activeItemStyles,
                                                 isThemePage && 'text-white',
                                                 'h-9 cursor-pointer px-3',
@@ -172,7 +168,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             )}
                                             {item.title}
                                         </Link>
-                                        {page.url === item.href && (
+                                        {page.url === resolveHref(item.href) && (
                                             <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
                                         )}
                                     </NavigationMenuItem>
@@ -199,12 +195,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 <a
-                                                    href={
-                                                        typeof item.href ===
-                                                        'string'
-                                                            ? item.href
-                                                            : item.href.url
-                                                    }
+                                                    href={resolveHref(item.href)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="group ml-1 inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent p-0 text-sm font-medium text-accent-foreground ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
@@ -254,8 +245,8 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
             </div>
             {breadcrumbs.length > 1 && (
                 <div
-                    className={cn('flex w-full border-b border-sidebar-border/70', isLookups && 'text-white')}
-                    style={isLookups ? { background: lookupsGradient, color: '#ffffff' } : undefined}
+                    className={cn('flex w-full border-b border-sidebar-border/70', isThemePage && 'text-white')}
+                    style={isThemePage ? { background: lookupsGradient, color: '#ffffff' } : undefined}
                 >
                     <div className="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl">
                         <Breadcrumbs breadcrumbs={breadcrumbs} />

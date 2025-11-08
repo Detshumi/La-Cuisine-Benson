@@ -8,12 +8,12 @@ export const mainNavItems = [
         icon: LayoutGrid,
     },
     {
-        title: 'Lookups',
+        title: 'Products',
         href: '/admin/lookups',
         icon: Folder,
     },
     {
-        title: 'Products',
+        title: 'Meals',
         href: '/admin/products',
         icon: ShoppingCart,
     },
