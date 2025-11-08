@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Product extends Model
@@ -23,6 +24,12 @@ class Product extends Model
         'description_fr',
         'thumbnail',
     ];
+
+    /**
+     * Append computed attributes so thumbnail_url is available in arrays/JSON.
+     * @var array
+     */
+    protected $appends = ['thumbnail_url'];
 
     public function options()
     {

@@ -4,6 +4,7 @@ import { Folder, FolderMinus, ChevronRight } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import ImageUploader from '@/components/ImageUploader';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +23,7 @@ export default function Lookups() {
     const { props } = usePage();
     const { options = [], categories = [], trans = {}, flash = {}, locale = 'en' } = props as any;
 
-    const breadcrumbs = [ { title: trans?.options ?? 'Lookups', href: '/admin/lookups' } ];
+    const breadcrumbs = [ { title: 'Products', href: '/admin/lookups' } ];
 
     const optionForm = useForm({ name_en: '', name_fr: '', description_en: '', description_fr: '', thumbnail: '', category_id: '' });
     const categoryForm = useForm({ name_en: '', name_fr: '' });
@@ -52,9 +53,18 @@ export default function Lookups() {
             return;
         }
 
+        // Defensive: if thumbnail is still a local object URL or data URI the upload hasn't completed yet
+        const thumb = optionForm.data.thumbnail || '';
+        if (thumb.startsWith('blob:') || thumb.startsWith('data:')) {
+            optionForm.setError('thumbnail', 'Please wait until the image upload finishes before submitting.');
+            return;
+        }
+
         optionForm.post('/admin/options', {
             onSuccess: () => {
                 optionForm.reset();
+                // clear selected option after successful save so form returns to 'Add' mode
+                setSelectedOptionId(null);
                 // refresh categories and options
                 refreshCategories();
             },
@@ -189,17 +199,7 @@ export default function Lookups() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={trans?.options ?? 'Lookups'} />
-
-            <div className="mx-auto w-full max-w-8xl pt-6">
-                {flash.error && (
-                    <Alert variant="destructive" className="mb-3">
-                        <AlertTitle>{trans.error ?? 'Error'}</AlertTitle>
-                        <AlertDescription>{flash.error}</AlertDescription>
-                    </Alert>
-                )}
-            </div>
-
+            <Head title={trans?.options ?? 'Products'} />
             <div className="w-full min-h-screen bg-gradient-to-br from-blue-500 to-teal-400">
                 <div className="mx-auto w-full max-w-8xl pt-8 md:pl-6 lg:pl-8">
                     <div className="grid items-start justify-center grid-cols-1 md:grid-cols-12 gap-y-3 md:gap-x-6 w-full">
@@ -225,6 +225,14 @@ export default function Lookups() {
                                                         const newExpanded = expandedCategoryId === cat.id ? null : cat.id;
                                                         setExpandedCategoryId(newExpanded);
                                                         setSelectedCategoryId(cat.id);
+                                                        // clear any previously selected option when switching category
+                                                        setSelectedOptionId(null);
+                                                        // reset the option form so fields are default for adding a new option
+                                                        optionForm.reset();
+                                                        // also clear any validation errors just in case
+                                                        if (typeof optionForm.clearErrors === 'function') {
+                                                            optionForm.clearErrors();
+                                                        }
                                                         // set the option form's category select so the form reflects the chosen category
                                                         optionForm.setData('category_id', String(cat.id));
                                                         // refresh categories to ensure options are up-to-date before showing
@@ -237,7 +245,7 @@ export default function Lookups() {
                                                             <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
                                                         </svg>
                                                     </span>
-                                                    <div className="font-medium">{locale === 'fr' ? cat.name_fr || cat.name_en : cat.name_en}</div>
+                                                    <div className="font-medium min-w-0 break-words">{locale === 'fr' ? cat.name_fr || cat.name_en : cat.name_en}</div>
                                                 </button>
                                             </div>
                                             {expandedCategoryId === cat.id && (
@@ -248,7 +256,7 @@ export default function Lookups() {
                                                                 <span className="flex items-center">
                                                                     <ChevronRight className="w-4 h-4 text-neutral-400" />
                                                                 </span>
-                                                                <div className="text-sm">{locale === 'fr' ? opt.name_fr || opt.name_en : opt.name_en}</div>
+                                                                    <div className="text-sm min-w-0 break-words">{locale === 'fr' ? opt.name_fr || opt.name_en : opt.name_en}</div>
                                                             </div>
                                                         </li>
                                                     ))}
@@ -269,11 +277,11 @@ export default function Lookups() {
                                         {selectedCategoryId ? (
                                             (() => {
                                                 const c = localCategories.find((c:any) => String(c.id) === String(selectedCategoryId));
-                                                if (!c) return trans.options ?? 'Options';
+                                                if (!c) return trans.option ?? 'Product';
                                                 return locale === 'fr' ? (c.name_fr || c.name_en) : c.name_en;
                                             })()
                                         ) : (
-                                            trans.options ?? 'Options'
+                                            trans.option ?? 'Product'
                                         )}
                                     </CardTitle>
                                 </CardHeader>
@@ -316,14 +324,30 @@ export default function Lookups() {
 
                                         <div className="mb-6">
                                             <Label>{trans.fields?.thumbnail ?? 'Thumbnail URL'}</Label>
-                                            <Input required className="placeholder:text-black" value={optionForm.data.thumbnail} onChange={(e:any)=> optionForm.setData('thumbnail', e.target.value)} placeholder={trans.fields?.thumbnail ?? 'Thumbnail URL'} />
+                                            <ImageUploader
+                                                value={optionForm.data.thumbnail}
+                                                onChange={(url)=> optionForm.setData('thumbnail', url)}
+                                                onRemoveServer={async () => {
+                                                    if (!selectedOptionId) return Promise.reject();
+                                                    const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+                                                    const res = await fetch(`/admin/options/${selectedOptionId}/thumbnail`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' } });
+                                                    if (res.ok) {
+                                                        optionForm.setData('thumbnail', '');
+                                                        // refresh categories/options so UI remains consistent
+                                                        await refreshCategories();
+                                                        return Promise.resolve();
+                                                    }
+                                                    return Promise.reject();
+                                                }}
+                                            />
+                                            {optionForm.errors.thumbnail && <div className="text-sm text-destructive mt-1">{optionForm.errors.thumbnail}</div>}
                                         </div>
                                     </form>
 
                                     {/* submit button placed in normal flow so layout remains responsive */}
                                     <div className="mt-4 flex justify-end">
-                                        <Button form="option-form" type="submit" className={`bg-emerald-400 text-white hover:bg-emerald-500 shadow-md hover:shadow-lg`}>
-                                            {trans.actions?.add_option ?? 'Add Option'}
+                                        <Button form="option-form" type="submit" className={`bg-emerald-400 text-white hover:bg-emerald-500 shadow-md hover:shadow-lg w-full md:w-auto`}>
+                                            {selectedOptionId ? (trans.actions?.edit_product ?? 'Edit Product') : (trans.actions?.add_product ?? 'Add Product')}
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -383,6 +407,21 @@ export default function Lookups() {
                     onContextMenu={(e) => e.preventDefault()}
                 >
                     <div className="bg-white dark:bg-gray-800 border rounded shadow-md p-1 w-40">
+                        {contextMenu.type === 'category' && (
+                            <button className="w-full text-left px-3 py-2 hover:bg-slate-50" onClick={(e) => { e.stopPropagation();
+                                // populate category form for editing and open modal
+                                const cat = localCategories.find((c:any) => c.id === contextMenu.id);
+                                if (cat) {
+                                    categoryForm.setData({ name_en: cat.name_en || '', name_fr: cat.name_fr || '' });
+                                    // clear previous errors
+                                    if ((categoryForm as any).clearErrors) (categoryForm as any).clearErrors();
+                                }
+                                setShowCategoryModal(true);
+                                setContextMenu(null);
+                            }}>
+                                Edit Category
+                            </button>
+                        )}
                         <button className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600" onClick={(e) => { e.stopPropagation(); performDelete(); }}>
                             Delete {contextMenu.type === 'category' ? 'Category' : 'Option'}
                         </button>
