@@ -21,31 +21,37 @@ class UploadController extends Controller
         $file = $request->file('image');
 
         try {
-            $disk = Storage::disk('public');
-
             // store original with a unique name
             $name = time().'_'.Str::random(8).'.'.$file->getClientOriginalExtension();
             $path = 'images/'.$name;
-            // store in storage disk (public)
-            $disk->putFileAs('images', $file, $name);
 
-            // also copy into the repo's public/images folder so it can be committed/pushed
-            $publicDir = public_path('images');
-            if (!is_dir($publicDir)) {
-                @mkdir($publicDir, 0755, true);
-            }
-            $publicPath = $publicDir.DIRECTORY_SEPARATOR.$name;
-            // prefer copying from the storage disk file (it may have been moved from the tmp path)
-            $storedFullPath = storage_path('app/public/' . $path);
-            if (file_exists($storedFullPath)) {
-                @copy($storedFullPath, $publicPath);
-            } elseif (file_exists($file->getPathname())) {
-                @copy($file->getPathname(), $publicPath);
+            // Decide where to store uploads:
+            // - If UPLOAD_TO_PUBLIC=true, write directly to public/images (convenient for local dev)
+            // - Otherwise, write to storage disk 'public' (preferred for production to avoid committing uploads)
+            $uploadToPublic = filter_var(env('UPLOAD_TO_PUBLIC', env('APP_ENV') === 'local' ? 'true' : 'false'), [FILTER_VALIDATE_BOOLEAN]);
+
+            $tmpPath = $file->getPathname();
+            if ($uploadToPublic) {
+                $publicDir = public_path('images');
+                if (!is_dir($publicDir)) { @mkdir($publicDir, 0755, true); }
+                try {
+                    $file->move($publicDir, $name);
+                    $publicPath = $publicDir . DIRECTORY_SEPARATOR . $name;
+                } catch (\Exception $e) {
+                    // fallback to copy
+                    $publicPath = $publicDir . DIRECTORY_SEPARATOR . $name;
+                    @copy($tmpPath, $publicPath);
+                }
+                $disk = null;
+            } else {
+                $disk = Storage::disk('public');
+                $disk->putFileAs('images', $file, $name);
             }
 
             // create thumbnail (square cover 400x400) using Intervention Image v3 API
             $manager = ImageManager::gd();
-            $img = $manager->read($file->getPathname());
+            // read from the temp path
+            $img = $manager->read($tmpPath);
 
             // make a cover/cropped thumbnail
             $img->modify(new CoverModifier(400, 400, 'center'));
@@ -55,27 +61,35 @@ class UploadController extends Controller
 
             $thumbName = pathinfo($name, PATHINFO_FILENAME) . '_thumb.jpg';
             $thumbPath = 'images/thumbs/'.$thumbName;
-            // ensure storage/thumbs dir exists
-            $disk->put($thumbPath, (string) $thumbEncoded);
 
-            // also save thumbnail into public/images/thumbs for repo
-            $publicThumbDir = public_path('images/thumbs');
-            if (!is_dir($publicThumbDir)) {
-                @mkdir($publicThumbDir, 0755, true);
+            // store thumbnail according to target
+            if ($uploadToPublic) {
+                $publicThumbDir = public_path('images/thumbs');
+                if (!is_dir($publicThumbDir)) { @mkdir($publicThumbDir, 0755, true); }
+                $publicThumbPath = $publicThumbDir . DIRECTORY_SEPARATOR . $thumbName;
+                @file_put_contents($publicThumbPath, (string) $thumbEncoded);
+            } else {
+                $disk->put($thumbPath, (string) $thumbEncoded);
             }
-            $publicThumbPath = $publicThumbDir.DIRECTORY_SEPARATOR.$thumbName;
-            @file_put_contents($publicThumbPath, (string) $thumbEncoded);
 
-            // build public URLs
-            // Public URLs that point to files inside the repo's public/images so you can commit them
-            $url = '/images/'.$name;
-            $thumbUrl = '/images/thumbs/'.$thumbName;
+            // Build public-facing URLs
+            if ($uploadToPublic) {
+                $publicUrl = asset('images/' . $name);
+                $publicThumbUrl = asset('images/thumbs/' . $thumbName);
+            } else {
+                // storage disk URLs (requires php artisan storage:link)
+                $publicUrl = $disk->url($path);
+                $publicThumbUrl = $disk->url($thumbPath);
+            }
 
             return response()->json([
-                'url' => $url,
-                'thumb' => $thumbUrl,
+                'url' => $publicUrl,
+                'thumb' => $publicThumbUrl,
+                // keep internal storage paths too for debugging if needed
                 'path' => $path,
                 'thumb_path' => $thumbPath,
+                'public_path' => $publicPath ?? null,
+                'public_thumb_path' => $publicThumbPath ?? null,
             ], 200);
 
         } catch (\Exception $e) {

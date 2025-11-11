@@ -2,6 +2,17 @@
 
 use Illuminate\Support\Str;
 
+// Helper: resolve a DB env variable using DB_ACTIVE suffix (e.g. DB_HOST_dev)
+$resolveDb = function (string $key, $default = null) {
+    $active = env('DB_ACTIVE', 'dev');
+    $keyActive = "{$key}_{$active}";
+    $val = env($keyActive);
+    if (!is_null($val) && $val !== '') {
+        return $val;
+    }
+    return env($key, $default);
+};
+
 return [
 
     /*
@@ -85,11 +96,11 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => $resolveDb('DB_HOST', '127.0.0.1'),
+            'port' => $resolveDb('DB_PORT', '5432'),
+            'database' => $resolveDb('DB_DATABASE', 'laravel'),
+            'username' => $resolveDb('DB_USERNAME', 'root'),
+            'password' => $resolveDb('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
