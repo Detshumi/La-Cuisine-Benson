@@ -28,7 +28,8 @@ class UploadController extends Controller
             // Decide where to store uploads:
             // - If UPLOAD_TO_PUBLIC=true, write directly to public/images (convenient for local dev)
             // - Otherwise, write to storage disk 'public' (preferred for production to avoid committing uploads)
-            $uploadToPublic = filter_var(env('UPLOAD_TO_PUBLIC', env('APP_ENV') === 'local' ? 'true' : 'false'), [FILTER_VALIDATE_BOOLEAN]);
+            // env() returns strings from .env; use FILTER_VALIDATE_BOOLEAN (an int) to coerce truthy values
+            $uploadToPublic = filter_var(env('UPLOAD_TO_PUBLIC', env('APP_ENV') === 'local' ? 'true' : 'false'), FILTER_VALIDATE_BOOLEAN);
 
             $tmpPath = $file->getPathname();
             if ($uploadToPublic) {
