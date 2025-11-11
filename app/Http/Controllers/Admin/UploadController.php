@@ -49,10 +49,15 @@ class UploadController extends Controller
                 $disk->putFileAs('images', $file, $name);
             }
 
+            // choose the correct source path for thumbnailing:
+            // if we moved the uploaded file into public, read from that location;
+            // otherwise read from the temp uploaded file path
+            $sourcePath = $uploadToPublic ? ($publicPath ?? $tmpPath) : $tmpPath;
+
             // create thumbnail (square cover 400x400) using Intervention Image v3 API
             $manager = ImageManager::gd();
             // read from the temp path
-            $img = $manager->read($tmpPath);
+            $img = $manager->read($sourcePath);
 
             // make a cover/cropped thumbnail
             $img->modify(new CoverModifier(400, 400, 'center'));
