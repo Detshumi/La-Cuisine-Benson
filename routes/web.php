@@ -2,10 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return Inertia::render('home');
 })->name('home');
+
+// Small JSON-only endpoint to return a fresh CSRF token.
+// Used by frontend uploaders to refresh token on 419 responses.
+Route::get('/csrf-token', function (Request $request) {
+    return response()->json(['token' => csrf_token()]);
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
