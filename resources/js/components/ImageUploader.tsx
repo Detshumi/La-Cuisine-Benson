@@ -75,12 +75,50 @@ export default function ImageUploader({ value = '', onChange, accept = 'image/*'
         form.append('image', resized);
 
         try {
-            const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
-            const res = await fetch('/admin/uploads/image', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': token },
-                body: form,
-            });
+            // helper to attempt a single upload with given token
+            const doUpload = async (csrfToken: string) => {
+                const headers: Record<string,string> = {
+                    'X-CSRF-TOKEN': csrfToken || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                };
+                return await fetch('/admin/uploads/image', {
+                    method: 'POST',
+                    headers,
+                    body: form,
+                    // ensure cookies / session are sent with the request
+                    credentials: 'same-origin',
+                });
+            };
+
+            let token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            let res = await doUpload(token);
+
+            // If 419 (CSRF/session expired) try refreshing CSRF token once and retry
+            if (res.status === 419) {
+                // Request a fresh CSRF token from the JSON endpoint and retry once
+                try {
+                    const r = await fetch('/csrf-token', { credentials: 'same-origin' });
+                    if (r.ok) {
+                        const json = await r.json();
+                        if (json && json.token) {
+                            token = json.token;
+                            let meta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
+                            if (!meta) {
+                                meta = document.createElement('meta');
+                                meta.setAttribute('name', 'csrf-token');
+                                document.head.appendChild(meta);
+                            }
+                            meta.content = token;
+                        }
+                    }
+                } catch (e) {
+                    // ignore refresh errors
+                }
+
+                // retry once with refreshed token
+                res = await doUpload(token);
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 // server returns url and thumb
