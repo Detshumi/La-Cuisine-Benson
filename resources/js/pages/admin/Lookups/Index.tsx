@@ -17,6 +17,37 @@ import {
     DialogFooter,
     DialogClose,
 } from '@/components/ui/dialog';
+
+// Small fetch helper that retries once on 419 by refreshing CSRF token via /csrf-token
+async function apiFetch(input: RequestInfo, init?: RequestInit, retry = true): Promise<Response> {
+    const merged: RequestInit = Object.assign({}, init, { credentials: 'same-origin' });
+    const res = await fetch(input, merged);
+    if (res.status === 419 && retry) {
+        try {
+            const tokenRes = await fetch('/csrf-token', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            if (tokenRes.ok) {
+                const json = await tokenRes.json();
+                const token = json?.token || '';
+                // set meta tag if present so other scripts pick it up
+                let meta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'csrf-token';
+                    document.head.appendChild(meta);
+                }
+                meta.content = token;
+                // retry original request with token header
+                const headers = new Headers(merged.headers || {} as any);
+                if (!headers.has('X-CSRF-TOKEN')) headers.set('X-CSRF-TOKEN', token);
+                const retryInit = Object.assign({}, merged, { headers });
+                return fetch(input, retryInit);
+            }
+        } catch (e) {
+            // fall-through to return original response
+        }
+    }
+    return res;
+}
 // dropdown removed — category will be read-only and chosen from the category card
 
 export default function Lookups() {
@@ -66,7 +97,28 @@ export default function Lookups() {
                 // clear selected option after successful save so form returns to 'Add' mode
                 setSelectedOptionId(null);
                 // refresh categories and options
-                refreshCategories();
+                (async () => {
+                    await refreshCategories();
+                    try {
+                        const r = await apiFetch('/admin/options', { headers: { Accept: 'application/json' } });
+                        if (r.ok) {
+                            const allOptions = await r.json();
+                            // build a map of categoryId -> options
+                            const byCategory = new Map();
+                            (allOptions || []).forEach((o:any) => {
+                                (o.categories || []).forEach((c:any) => {
+                                    const id = String(c.id);
+                                    if (!byCategory.has(id)) byCategory.set(id, []);
+                                    byCategory.get(id).push(o);
+                                });
+                            });
+                            // merge into localCategories copy
+                            setLocalCategories((prev:any[]) => prev.map((cat:any) => ({ ...cat, options: byCategory.get(String(cat.id)) || [] })));
+                        }
+                    } catch (err) {
+                        // ignore
+                    }
+                })();
             },
             // onError handled by form errors from the server; no inline alert shown here
         });
@@ -98,10 +150,20 @@ export default function Lookups() {
 
     async function refreshCategories() {
         try {
-            const res = await fetch('/admin/categories', { headers: { Accept: 'application/json' } });
+            const res = await apiFetch('/admin/categories', { headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' } });
             if (res.ok) {
                 const data = await res.json();
-                setLocalCategories(data);
+                // backend may return either an array or an object (Inertia or other wrapper)
+                if (Array.isArray(data)) {
+                    setLocalCategories(data);
+                } else if (Array.isArray(data.data)) {
+                    setLocalCategories(data.data);
+                } else if (Array.isArray(data.categories)) {
+                    setLocalCategories(data.categories);
+                } else {
+                    // fallback: try to coerce into array
+                    setLocalCategories(data || []);
+                }
             }
         } catch (err) {
             // silently ignore
@@ -165,7 +227,7 @@ export default function Lookups() {
             url = `/admin/options/${id}`;
         }
         try {
-            const res = await fetch(url, { method: 'DELETE', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '' } });
+            const res = await apiFetch(url, { method: 'DELETE', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
             if (res.ok) {
                 // refresh categories and close menu
                 await refreshCategories();
@@ -329,8 +391,7 @@ export default function Lookups() {
                                                 onChange={(url)=> optionForm.setData('thumbnail', url)}
                                                 onRemoveServer={async () => {
                                                     if (!selectedOptionId) return Promise.reject();
-                                                    const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
-                                                    const res = await fetch(`/admin/options/${selectedOptionId}/thumbnail`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' } });
+                                                    const res = await apiFetch(`/admin/options/${selectedOptionId}/thumbnail`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' } });
                                                     if (res.ok) {
                                                         optionForm.setData('thumbnail', '');
                                                         // refresh categories/options so UI remains consistent

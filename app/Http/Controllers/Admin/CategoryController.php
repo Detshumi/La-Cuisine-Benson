@@ -26,14 +26,23 @@ class CategoryController extends Controller
             ->first();
         if ($category) {
             $category->update($data);
+            if ($request->expectsJson()) {
+                return response()->json($category->load('options'));
+            }
             return redirect()->route('admin.lookups.index')->with('success', 'Category updated');
         }
 
         try {
             $category = Category::create($data);
+            if ($request->expectsJson()) {
+                return response()->json($category->load('options'), 201);
+            }
             return redirect()->route('admin.lookups.index')->with('success', 'Category created');
         } catch (\Illuminate\Database\QueryException $e) {
             // likely a unique constraint violation
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Category could not be created (possible duplicate)'], 422);
+            }
             return redirect()->route('admin.lookups.index')->with('error', 'Category could not be created (possible duplicate)');
         }
     }

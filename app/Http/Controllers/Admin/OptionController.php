@@ -34,6 +34,9 @@ class OptionController extends Controller
             if (!$option->categories()->where('categories.id', (int)$data['category_id'])->exists()) {
                 $option->categories()->attach((int) $data['category_id']);
             }
+            if ($request->expectsJson()) {
+                return response()->json($option->load('categories'));
+            }
             return redirect()->route('admin.lookups.index')->with('success', 'Option updated');
         }
 
@@ -41,8 +44,14 @@ class OptionController extends Controller
             $option = Option::create($data);
             // Attach to the provided category
             $option->categories()->attach((int) $data['category_id']);
+            if ($request->expectsJson()) {
+                return response()->json($option->load('categories'), 201);
+            }
             return redirect()->route('admin.lookups.index')->with('success', 'Option created');
         } catch (\Illuminate\Database\QueryException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Option could not be created (possible duplicate)'], 422);
+            }
             return redirect()->route('admin.lookups.index')->with('error', 'Option could not be created (possible duplicate)');
         }
     }
