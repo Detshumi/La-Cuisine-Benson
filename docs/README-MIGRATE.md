@@ -14,40 +14,22 @@ Files:
 
 ## Quick examples (PowerShell)
 
-Set the project to use production DB:
-
-```powershell
-.\switch-db.ps1 -Mode prod
-```
-
-Set to development DB:
-
-```powershell
-.\switch-db.ps1 -Mode dev
-```
-
-Toggle between dev/prod:
-
-```powershell
-.\switch-db.ps1 -Mode toggle
-```
-
 Run migration from production -> development (interactive confirm):
 
 ```powershell
-.\migrate-prod-to-dev.ps1 -KeepDump
+.\scripts\migrate-prod-to-dev.ps1 -KeepDump
 ```
 
 Force non-interactive (dangerous):
 
 ```powershell
-.\migrate-prod-to-dev.ps1 -KeepDump -Force
+.\scripts\migrate-prod-to-dev.ps1 -KeepDump -Force
 ```
 
 If you need to run remote `pg_dump` via SSH (server must have `pg_dump` and allow SSH):
 
 ```powershell
-.\migrate-prod-to-dev.ps1 -UseSsh -SshUser root -SshPort 22 -KeepDump
+.\scripts\migrate-prod-to-dev.ps1 -UseSsh -SshUser root -SshPort 22 -KeepDump
 ```
 
 ---

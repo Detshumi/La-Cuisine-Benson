@@ -25,8 +25,18 @@ param(
 )
 
 function Get-EnvValue($key) {
-    $envPath = Join-Path $PSScriptRoot '.env'
-    if (-not (Test-Path $envPath)) { throw ".env not found at $envPath" }
+    # Search upward from script directory for the repo .env (allow running from scripts\)
+    $maxLevels = 6
+    $envPath = $null
+    $dir = $PSScriptRoot
+    for ($i = 0; $i -lt $maxLevels; $i++) {
+        $candidate = Join-Path $dir '.env'
+        if (Test-Path $candidate) { $envPath = $candidate; break }
+        $parent = Split-Path $dir -Parent
+        if ([string]::IsNullOrEmpty($parent) -or $parent -eq $dir) { break }
+        $dir = $parent
+    }
+    if (-not $envPath) { throw ".env not found in $PSScriptRoot or parent directories (searched up to $maxLevels levels)." }
     $lines = Get-Content $envPath
     foreach ($line in $lines) {
         if ($line -match "^$key\s*=\s*(.*)$") {
